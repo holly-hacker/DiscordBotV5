@@ -8,7 +8,7 @@ namespace HoLLy.DiscordBot.Commands
         internal string Command { get; }
         internal string Description { get; }
 
-        public CommandAttribute(string command, string description = "")
+        public CommandAttribute(string command, string description = null)
         {
             Command = command;
             Description = description;

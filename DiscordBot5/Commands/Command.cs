@@ -12,6 +12,7 @@ namespace HoLLy.DiscordBot.Commands
         public string Verb;
         public string Description;
         public Type[] Types => _method?.GetParameters().Select(x => x.ParameterType).ToArray();
+        public string Usage => Verb + Types?.Select(y => $" <{y.Name}>").SafeAggregate();
         private MethodInfo _method;
         private bool EndsOnString => Types?.Last() == typeof(string);
 
@@ -58,6 +59,10 @@ namespace HoLLy.DiscordBot.Commands
 
         private object[] ParseParameters(string args)
         {
+            // Special case: no parameters expected
+            if (Types == null || Types.Length == 0)
+                return null;
+
             // Special case: accepting only a string
             if (Types.Length == 1 && Types[0] == typeof(string))
                 return new object[] { args };
@@ -122,14 +127,14 @@ namespace HoLLy.DiscordBot.Commands
             // TODO: show help-specific info if argument is specified (also make sure to update Match when implementing that)
 
             // Get a list of commands (with params)
-            List<string> usages = _commands.Select(x => x.Verb + x.Types?.Select(y => $" <{y.Name}>").Aggregate((i, j) => i + j) + ":").ToList();
+            List<string> usages = _commands.Select(x => x.Usage + ":").ToList();
             int longestUsage = usages.Max(x => x.Length);
 
             // Build the help list
             var sb = new StringBuilder();
             sb.AppendLine("```http");
             for (int i = 0; i < usages.Count; i++)
-                sb.AppendLine($"{usages[i].PadRight(longestUsage)} {_commands[i].Description}");
+                sb.AppendLine($"{usages[i].PadRight(longestUsage)} {_commands[i].Description ?? "<no description>"}");
             sb.Append("```");
 
             return sb.ToString();

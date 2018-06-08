@@ -48,7 +48,7 @@ namespace HoLLy.DiscordBot
 
         private static async Task ClientOnMessageReceived(SocketMessage arg)
         {
-            await _cmd.Handle(arg);
+            await _cmd.HandleMessage(arg);
         }
 
         private static Task ClientOnLog(LogMessage arg)

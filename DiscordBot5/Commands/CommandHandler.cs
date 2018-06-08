@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -33,18 +32,19 @@ namespace HoLLy.DiscordBot.Commands
 
             // Look for commands in nearby DLL's
             foreach (var command in FindCommands()) {
-                Console.WriteLine("Detected command " + command.Verb);
+                Console.WriteLine("Detected command " + command.Usage);
                 _commands.Add(command);
             }
         }
 
-        public async Task Handle(SocketMessage msg)
+        public async Task HandleMessage(SocketMessage msg)
         {
             if (msg.Source != MessageSource.User) return;
 
             string content = msg.Content;
-
             string response;
+
+            // Check for commands
             if (content.StartsWith(_prefix)) {
                 // A normal command, triggered by a message starting with a prefix
                 string command = content.Substring(_prefix.Length).TrimStart();
@@ -54,7 +54,7 @@ namespace HoLLy.DiscordBot.Commands
                 // This code lazily initialized sb, as a minor performance optimization
                 StringBuilder sb = null;
                 foreach (var pair in ExtractCommands(content))
-                    (sb ?? (sb = new StringBuilder())).AppendLine($"`{pair.Key}` - {await HandleCommand(msg, pair.Value)}");
+                    (sb ?? (sb = new StringBuilder())).AppendLine($"`{pair.Key}` - {await HandleCommand(msg, pair.Value) ?? "<no response>"}");
 
                 response = sb?.ToString();
             }
@@ -88,7 +88,7 @@ namespace HoLLy.DiscordBot.Commands
             } else {
                 // We got a single command, invoke it.
                 try {
-                    return matching.Single().Invoke(args).ToString();
+                    return matching.Single().Invoke(args)?.ToString();
                 } catch (Exception e) {
                     Console.WriteLine(e);
                     return $"An exception occured while executing this command: `{e.Message}`";
