@@ -14,7 +14,7 @@ namespace HoLLy.DiscordBot.Commands
         public Type[] Types => _method?.GetParameters().Select(x => x.ParameterType).ToArray();
         public string Usage => Verb + Types?.Select(y => $" <{y.Name}>").SafeAggregate();
         private MethodInfo _method;
-        private bool EndsOnString => Types?.Last() == typeof(string);
+        private bool EndsOnVarLength => Types?.Last() == typeof(string) || Types?.Last().IsArray == true;
 
         public Command(string verb, string description, MethodInfo method)
         {
@@ -42,7 +42,7 @@ namespace HoLLy.DiscordBot.Commands
 
             int argCount = arguments.Split(' ').Length;
 
-            if (!EndsOnString) {
+            if (!EndsOnVarLength) {
                 // If we do NOT end on a string, then check if the amount of args is equal to the expected
                 return argCount == Types.Length;
             } else {
@@ -63,33 +63,40 @@ namespace HoLLy.DiscordBot.Commands
             if (Types == null || Types.Length == 0)
                 return null;
 
-            // Special case: accepting only a string
-            if (Types.Length == 1 && Types[0] == typeof(string))
-                return new object[] { args };
+            // Special case: accepting only a variable length type
+            if (Types.Length == 1 && EndsOnVarLength)
+                if (ParseParameter(Types[0], args, out object obj)) {
+                    return new[] { obj };
+                } else throw new ArgumentException($"Failed to parse variable length argument! (type={Types[0]}) :(");
+            
 
-            // Detect if the last parameter is a string, we need some special handling. then 
+            // Detect if the last parameter is a string, we need some special handling then 
 
             // Split the argument by space, assuming the last argument isn't a string
             string[] splittedArgs = args.Split(' ');
-            if (!EndsOnString && splittedArgs.Length != Types.Length)
+            if (!EndsOnVarLength && splittedArgs.Length != Types.Length)
                 throw new Exception($"Argument count mismatch! (Expected {Types.Length}, got {splittedArgs.Length})");
 
-            // Get the length of the normal parameters (meaning not strings).
-            // If there is a string at the end, then we stop the splitting one parameter early and take the rest as the string parameter.
+            // Get the length of the normal parameters (meaning not variable lengths).
+            // If there is a varable length at the end, then we stop the splitting one parameter early and take the rest as the parameter.
             int paramCount = splittedArgs.Length;
             var parameters = new object[paramCount];
-            if (EndsOnString)
-                paramCount--;   // Need to keep in mind that this is reduced by 1 if we end on a string!
+            if (EndsOnVarLength)
+                paramCount--;   // Need to keep in mind that this is reduced by 1 if we end on a variable length!
 
             // Everything should be good now, let's parse the parameters
             for (int i = 0; i < paramCount; i++)
                 if (!ParseParameter(Types[i], splittedArgs[i], out parameters[i]))
                     throw new ArgumentException($"Failed to parse argument {i + 1} :(");
 
-            // If the last parameter is a string, get that last string now
-            if (EndsOnString) {
+            // If the last parameter is of variable length, get that now
+            if (EndsOnVarLength) {
                 Debug.Assert(paramCount == splittedArgs.Length - 1);
-                parameters[paramCount] = string.Join(" ", splittedArgs.Skip(paramCount));
+
+                // Take the last (joined left args) and parse it
+                var finalArg = string.Join(" ", splittedArgs.Skip(paramCount));
+                if (!ParseParameter(Types[paramCount], finalArg, out parameters[paramCount]))
+                    throw new ArgumentException($"Failed to parse last (variable length) argument! (type={Types[paramCount]}) :(");
             }
 
             return parameters;
@@ -98,10 +105,35 @@ namespace HoLLy.DiscordBot.Commands
         private static bool ParseParameter(Type t, string str, out object o)
         {
             bool ret;
+
+            // Check if array
+            if (t.IsArray) {
+                // Split the remaining string
+                var splitted = str.Split(' ');
+                
+                Debug.Assert(t.GetElementType() != null);
+                Array arr = Array.CreateInstance(t.GetElementType(), splitted.Length);    // This has to be an array of the correct type!
+                o = arr;
+                
+                // Try to parse all the parameters, and then do some recursive magic!
+                for (int i = 0; i < splitted.Length; i++) {
+                    bool succ = ParseParameter(t.GetElementType(), splitted[i], out object temp);
+                    arr.SetValue(temp, i);
+                    if (!succ)
+                        return false;
+                }
+
+                return true;
+            }
+
             switch (t.FullName) {
                 case "System.Int32":
                     ret = Int32.TryParse(str, out int i32);
                     o = i32;
+                    break;
+                case "System.String":
+                    ret = true;
+                    o = str;
                     break;
                 default:
                     o = null;

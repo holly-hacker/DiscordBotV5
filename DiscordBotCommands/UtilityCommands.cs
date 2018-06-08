@@ -25,7 +25,10 @@ namespace HoLLy.DiscordBot.Commands
         [Command("Repeat", "Repeats a string")]
         public static string Repeat(int count, string s) => new string(Enumerable.Repeat(s.ToCharArray(), count).SelectMany(x => x).ToArray());
 
-        [Command("Nothing")]
+        [Command("rand", "Picks a random word from a list")]
+        public static string Random(string[] words) => words[new Random().Next(0, words.Length)];
+
+        [Command("nothing")]
         public static void Dummy() {}
     }
 }
