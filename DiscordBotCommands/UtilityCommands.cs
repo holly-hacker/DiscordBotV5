@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using NCalc;
 
 namespace HoLLy.DiscordBot.Commands
@@ -17,5 +18,11 @@ namespace HoLLy.DiscordBot.Commands
 
         [Command("add", "Adds 2 things")]
         public static int Add(int x, int y) => x + y;
+
+        [Command("add", "Adds 3(!!) things")]
+        public static int Add(int x, int y, int z) => x + y + z;
+
+        [Command("Repeat", "Repeats a string")]
+        public static string Repeat(int count, string s) => new string(Enumerable.Repeat(s.ToCharArray(), count).SelectMany(x => x).ToArray());
     }
 }

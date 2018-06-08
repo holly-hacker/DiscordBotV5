@@ -13,6 +13,7 @@ namespace HoLLy.DiscordBot.Commands
         public string Description;
         public Type[] Types => _method?.GetParameters().Select(x => x.ParameterType).ToArray();
         private MethodInfo _method;
+        private bool EndsOnString => Types?.Last() == typeof(string);
 
         public Command(string verb, string description, MethodInfo method)
         {
@@ -20,21 +21,40 @@ namespace HoLLy.DiscordBot.Commands
             Description = description;
             _method = method;
 
-            if (_method != null)
+            if (_method != null) {
                 Debug.Assert(_method.IsStatic);
+
+                // Do some checks against strings. I don't like strings :(
+                if (Types.Count(x => x == typeof(string)) >= 2)
+                    throw new NotSupportedException("Found more than 2 strings in this command.");
+            }
         }
 
         public bool Matches(string verb, string arguments)
         {
-            // For now, only check the verb
-            // TODO: Check if arguments match
-            return verb == Verb;
+            // Easiest check, make sure the verbs match
+            if (verb != Verb) return false;
+
+            // If we don't have a method (and thus no types), make sure the arguments aren't specified
+            if (Types == null || Types.Length == 0)
+                return string.IsNullOrWhiteSpace(arguments);
+
+            int argCount = arguments.Split(' ').Length;
+
+            if (!EndsOnString) {
+                // If we do NOT end on a string, then check if the amount of args is equal to the expected
+                return argCount == Types.Length;
+            } else {
+                // Ending on a string, usually not good. Do some special checks
+                if (Types.Length == 1)
+                    return true;    // The entire argument is a single string
+                else
+                    return argCount >= Types.Length;
+            }
+
         }
 
-        public virtual object Invoke(string arguments)
-        {
-            return _method.Invoke(null, ParseParameters(arguments));
-        }
+        public virtual object Invoke(string arguments) => _method.Invoke(null, ParseParameters(arguments));
 
         private object[] ParseParameters(string args)
         {
@@ -42,22 +62,31 @@ namespace HoLLy.DiscordBot.Commands
             if (Types.Length == 1 && Types[0] == typeof(string))
                 return new object[] { args };
 
-            // Do some checks against strings. I don't like strings :(
-            if (Types.Last() == typeof(string))
-                throw new NotImplementedException("Last type of command params is a string, this is not supported");
-            if (Types.Any(x => x == typeof(string)))
-                throw new NotImplementedException("You know what, strings in general in command parameters aren't supported.");
+            // Detect if the last parameter is a string, we need some special handling. then 
 
             // Split the argument by space, assuming the last argument isn't a string
             string[] splittedArgs = args.Split(' ');
-            if (splittedArgs.Length != Types.Length)
+            if (!EndsOnString && splittedArgs.Length != Types.Length)
                 throw new Exception($"Argument count mismatch! (Expected {Types.Length}, got {splittedArgs.Length})");
 
+            // Get the length of the normal parameters (meaning not strings).
+            // If there is a string at the end, then we stop the splitting one parameter early and take the rest as the string parameter.
+            int paramCount = splittedArgs.Length;
+            var parameters = new object[paramCount];
+            if (EndsOnString)
+                paramCount--;   // Need to keep in mind that this is reduced by 1 if we end on a string!
+
             // Everything should be good now, let's parse the parameters
-            var parameters = new object[splittedArgs.Length];
-            for (int i = 0; i < splittedArgs.Length; i++)
+            for (int i = 0; i < paramCount; i++)
                 if (!ParseParameter(Types[i], splittedArgs[i], out parameters[i]))
                     throw new ArgumentException($"Failed to parse argument {i + 1} :(");
+
+            // If the last parameter is a string, get that last string now
+            if (EndsOnString) {
+                Debug.Assert(paramCount == splittedArgs.Length - 1);
+                parameters[paramCount] = string.Join(" ", splittedArgs.Skip(paramCount));
+            }
+
             return parameters;
         }
 
@@ -90,7 +119,7 @@ namespace HoLLy.DiscordBot.Commands
         public override object Invoke(string arguments)
         {
             // Ignoring arguments for now
-            // TODO: show help-specific info if argument is specified
+            // TODO: show help-specific info if argument is specified (also make sure to update Match when implementing that)
 
             // Get a list of commands (with params)
             List<string> usages = _commands.Select(x => x.Verb + x.Types?.Select(y => $" <{y.Name}>").Aggregate((i, j) => i + j) + ":").ToList();
