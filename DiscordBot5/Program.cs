@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using HoLLy.DiscordBot.Commands;
 
 namespace HoLLy.DiscordBot
 {
@@ -16,18 +17,23 @@ namespace HoLLy.DiscordBot
         {
             Console.WriteLine("Hello World!\n");
 
-            string token = Environment.GetEnvironmentVariable(TokenEnvName);
-            if (string.IsNullOrWhiteSpace(token)) {
-                Console.WriteLine($"No token in {TokenEnvName}.");
-                Console.ReadLine();
-                return;
+            _cmd = new CommandHandler(Prefix);
+            _cmd.InstallCommands();
+
+            var client = new DiscordSocketClient(); 
+
+            // Artificial scope to make sure the token doesn't leak by accident :)
+            {
+                string token = Environment.GetEnvironmentVariable(TokenEnvName);
+                if (string.IsNullOrWhiteSpace(token)) {
+                    Console.WriteLine($"No token in {TokenEnvName}.");
+                    Console.ReadLine();
+                    return;
+                }
+                Console.WriteLine("Logging in...");
+                await client.LoginAsync(TokenType.Bot, token);
             }
 
-            _cmd = new CommandHandler(Prefix);
-
-            var client = new DiscordSocketClient();
-            Console.WriteLine("Logging in...");
-            await client.LoginAsync(TokenType.Bot, token);
             Console.WriteLine("Starting...");
             await client.StartAsync();
             Console.WriteLine("Logged in.");
