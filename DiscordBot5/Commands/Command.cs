@@ -34,7 +34,7 @@ namespace HoLLy.DiscordBot.Commands
         public bool Matches(string verb, string arguments)
         {
             // Easiest check, make sure the verbs match
-            if (verb != Verb) return false;
+            if (verb.ToLowerInvariant() != Verb) return false;
 
             // If we don't have a method (and thus no types), make sure the arguments aren't specified
             if (Types == null || Types.Length == 0)
