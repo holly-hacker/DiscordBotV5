@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using HoLLy.DiscordBot.Permissions;
 
 namespace HoLLy.DiscordBot.Commands
 {
@@ -16,11 +17,13 @@ namespace HoLLy.DiscordBot.Commands
         private const string AssemblyPrefix = "HoLLy.DiscordBot.Commands";
 
         private readonly string _prefix;
+        private readonly PermissionManager _perm;
         private List<Command> _commands;
 
-        public CommandHandler(string prefix)
+        public CommandHandler(string prefix, PermissionManager perm)
         {
             _prefix = prefix;
+            _perm = perm;
         }
 
         public void InstallCommands()
@@ -39,8 +42,11 @@ namespace HoLLy.DiscordBot.Commands
 
         public async Task HandleMessage(SocketMessage msg)
         {
-            if (msg.Source != MessageSource.User) return;
+            int perm = _perm.GetPermissions(msg);
+            Console.WriteLine($"PERMISSION FOR {msg.Author}: " + perm);
 
+            if (msg.Source != MessageSource.User) return;
+            
             string content = msg.Content;
             string response;
 

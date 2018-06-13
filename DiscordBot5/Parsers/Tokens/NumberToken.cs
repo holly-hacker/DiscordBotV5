@@ -2,9 +2,9 @@
 {
     internal class NumberToken : BasicToken
     {
-        public int Value { get; }
+        public ulong Value { get; }
 
-        public NumberToken(int num) : base(num.ToString())
+        public NumberToken(ulong num) : base(num.ToString())
         {
             Value = num;
         }

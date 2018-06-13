@@ -49,7 +49,7 @@ namespace HoLLy.DiscordBot.Parsers
             // Is this a number?
             if (IsNumber(c)) {
                 // This will break if numbers are too long :(
-                return new NumberToken(Int32.Parse(ReadWhileCondition(input, ref idx, IsNumber)));
+                return new NumberToken(ulong.Parse(ReadWhileCondition(input, ref idx, IsNumber)));
             }
 
             // This is something else, perhaps a keyword

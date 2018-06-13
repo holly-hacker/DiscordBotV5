@@ -1,23 +1,38 @@
 ﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using HoLLy.DiscordBot.Commands;
+using HoLLy.DiscordBot.Permissions;
 
 namespace HoLLy.DiscordBot
 {
     internal static class Program
     {
         private const string TokenEnvName = "DISCORD_BOT_SECRET";
+        private const string PermissionFile = "permissions.txt";
         private const string Prefix = "h:";
 
         private static CommandHandler _cmd;
+        private static PermissionManager _perm;
 
         private static async Task Main(string[] args)
         {
             Console.WriteLine("Hello World!\n");
 
-            _cmd = new CommandHandler(Prefix);
+            if (!File.Exists(PermissionFile)) {
+                Console.WriteLine($"Please create a permissions file named {PermissionFile}!");
+                Console.Read();
+                return;
+            }
+
+            Console.WriteLine("Reading permissions...");
+            _perm = new PermissionManager();
+            _perm.Read(PermissionFile);
+
+            Console.WriteLine("Installing commands...");
+            _cmd = new CommandHandler(Prefix, _perm);
             _cmd.InstallCommands();
 
             var client = new DiscordSocketClient(); 
