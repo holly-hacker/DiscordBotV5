@@ -7,9 +7,18 @@ namespace HoLLy.DiscordBot.Commands
     {
         internal string Command { get; }
         internal string Description { get; }
+        public int? MinPermission { get; }
 
         public CommandAttribute(string command, string description = null)
         {
+            Command = command;
+            Description = description;
+            MinPermission = null;
+        }
+
+        public CommandAttribute(int minPermission, string command, string description = null)
+        {
+            MinPermission = minPermission;
             Command = command;
             Description = description;
         }

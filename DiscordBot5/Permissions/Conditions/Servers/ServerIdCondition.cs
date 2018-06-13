@@ -13,6 +13,11 @@ namespace HoLLy.DiscordBot.Permissions.Conditions.Servers
             _id = id;
         }
 
-        public bool Match(ISocketMessageChannel c) => c.Id == _id;
+        public bool Match(ISocketMessageChannel c)
+        {
+            if (c is SocketGuildChannel gc) 
+                return gc.Guild.Id == _id;
+            return false;
+        }
     }
 }

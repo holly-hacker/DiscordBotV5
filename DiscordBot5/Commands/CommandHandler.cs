@@ -42,9 +42,6 @@ namespace HoLLy.DiscordBot.Commands
 
         public async Task HandleMessage(SocketMessage msg)
         {
-            int perm = _perm.GetPermissions(msg);
-            Console.WriteLine($"PERMISSION FOR {msg.Author}: " + perm);
-
             if (msg.Source != MessageSource.User) return;
             
             string content = msg.Content;
@@ -94,7 +91,11 @@ namespace HoLLy.DiscordBot.Commands
             } else {
                 // We got a single command, invoke it.
                 try {
-                    return matching.Single().Invoke(args)?.ToString();
+                    var command = matching.Single();
+
+                    return _perm.GetPermissions(msg) >= command.MinPermission 
+                        ? command.Invoke(args)?.ToString() 
+                        : "You do not have the required permission level to use this command!";
                 } catch (Exception e) {
                     Console.WriteLine(e);
                     return $"An exception occured while executing this command: `{e.Message}`";
@@ -113,10 +114,11 @@ namespace HoLLy.DiscordBot.Commands
 
         public static IEnumerable<Command> FindCommands()
         {
-            return  from file   in Directory.GetFiles(Environment.CurrentDirectory, AssemblyPrefix + "*.dll") 
+            return
+                from file   in Directory.GetFiles(Environment.CurrentDirectory, AssemblyPrefix + "*.dll") 
                 from method in Assembly.LoadFile(file).ExportedTypes.SelectMany(x => x.GetMethods()) 
                 from attr   in method.GetCustomAttributes<CommandAttribute>() 
-                select new Command(attr.Command, attr.Description, method);
+                select new Command(attr.Command, attr.Description, attr.MinPermission, method);
         }
     }
 }

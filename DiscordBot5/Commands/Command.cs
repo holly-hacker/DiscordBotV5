@@ -9,17 +9,19 @@ namespace HoLLy.DiscordBot.Commands
 {
     internal class Command
     {
-        public string Verb;
-        public string Description;
+        public readonly string Verb;
+        public readonly string Description;
+        public readonly int? MinPermission;
         public Type[] Types => _method?.GetParameters().Select(x => x.ParameterType).ToArray();
         public string Usage => Verb + Types?.Select(y => $" <{y.Name}>").SafeAggregate();
         private MethodInfo _method;
         private bool EndsOnVarLength => Types?.Last() == typeof(string) || Types?.Last().IsArray == true;
 
-        public Command(string verb, string description, MethodInfo method)
+        public Command(string verb, string description, int? minPermission, MethodInfo method)
         {
             Verb = verb.ToLowerInvariant();
             Description = description;
+            MinPermission = minPermission;
             _method = method;
 
             if (_method != null) {
@@ -148,7 +150,7 @@ namespace HoLLy.DiscordBot.Commands
     {
         private readonly IReadOnlyList<Command> _commands;
 
-        public HelpCommand(IReadOnlyList<Command> commands) : base("help", "Displays some help", null)
+        public HelpCommand(IReadOnlyList<Command> commands) : base("help", "Displays some help", 0, null)
         {
             _commands = commands;
         }
