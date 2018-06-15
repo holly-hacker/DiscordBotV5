@@ -124,11 +124,53 @@ namespace HoLLy.DiscordBot.Permissions
 
         public int GetPermissions(SocketMessage message)
         {
-            // Select the highest permission for this user
-            return Conditions
-                .Where(x => x.Key.Match(message.Channel)).Select(x => x.Value)                  // Where server matches
-                .SelectMany(x => x.Where(y => y.Key.Match(message.Author, message.Channel)))    // Select user perms that match
-                .Max(x => x.Value);                                                             // Get the biggest number!
+            // Get all matching servers conditions
+            var serverNonDefault = Conditions
+                .Where(s => s.Key.Match(message.Channel))
+                .Where(s => !(s.Key is DefaultServerCondition))
+                .SelectMany(s => s.Value)
+                .ToArray();
+
+            if (serverNonDefault.Any()) {
+                // Get all matching conditions
+                var user = serverNonDefault
+                    .Where(u => u.Key.Match(message.Author, message.Channel))
+                    .ToArray();
+                var userNonDefault = user
+                    .Where(u => !(u.Key is DefaultUserCondition))
+                    .ToArray();
+
+                // Try non-default matches
+                if (userNonDefault.Any())
+                    return userNonDefault.Max(x => x.Value);
+                
+                // Fall back to default match
+                if (user.Any())
+                    return user.Max(x => x.Value);
+            }
+
+            if (Conditions.Any(s => s.Key is DefaultServerCondition)) {
+                var defServer = Conditions.Single(s => s.Key is DefaultServerCondition).Value;
+
+                // Get all matching conditions
+                var user = defServer
+                    .Where(u => u.Key.Match(message.Author, message.Channel))
+                    .ToArray();
+                var userNonDefault = user
+                    .Where(u => !(u.Key is DefaultUserCondition))
+                    .ToArray();
+
+                // Try non-default matches
+                if (userNonDefault.Any())
+                    return userNonDefault.Max(x => x.Value);
+                
+                // Fall back to default match
+                if (user.Any())
+                    return user.Max(x => x.Value);
+            }
+
+            // Could return int32.min here
+            throw new Exception("No permission for this user!");
         }
     }
 }
