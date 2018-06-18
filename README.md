@@ -18,7 +18,7 @@ place commands in the middle of your message, name them, and execute multiple at
     ```
 
 * **Declarative command creation**: Boilerplate code is boring, so I made creating commands as easy as possible. Simply 
-create a method like you normally would and add a CommandAttribute with the parameters you like. Behind the scenes is a 
+create a method like you normally would and add a CommandAttribute with the parameters you like. Behind the scenes all these methods get parsed and converted in commands that can be used by the bot.
 
   This is how the `rand` command is implemented:
   ```cs
