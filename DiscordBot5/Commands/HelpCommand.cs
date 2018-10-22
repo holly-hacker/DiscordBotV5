@@ -3,11 +3,11 @@ using System.Linq;
 using System.Text;
 
 namespace HoLLy.DiscordBot.Commands {
-    internal class HelpCommand : CommandBase
+    internal class HelpCommand : Command
     {
-        private readonly IReadOnlyList<CommandBase> _commands;
+        private readonly IReadOnlyList<Command> _commands;
 
-        public HelpCommand(IReadOnlyList<CommandBase> commands) : base("help", "Displays some help")
+        public HelpCommand(IReadOnlyList<Command> commands) : base("help", "Displays some help")
         {
             _commands = commands;
         }

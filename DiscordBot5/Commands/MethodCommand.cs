@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace HoLLy.DiscordBot.Commands
 {
-    internal class MethodCommand : CommandBase
+    internal class MethodCommand : Command
     {
         public override string Usage => Verb + _types?.Select(y => $" <{y.Name}>").SafeAggregate();
 

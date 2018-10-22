@@ -2,14 +2,14 @@
 
 namespace HoLLy.DiscordBot.Commands
 {
-    internal abstract class CommandBase
+    internal abstract class Command
     {
         public readonly string Verb;
         public readonly string Description;
         public readonly int MinPermission;
         public abstract string Usage { get; }
 
-        public CommandBase(string verb, string description, int minPermission = 0)
+        public Command(string verb, string description, int minPermission = 0)
         {
             Verb = verb.ToLowerInvariant();
             Description = description;
