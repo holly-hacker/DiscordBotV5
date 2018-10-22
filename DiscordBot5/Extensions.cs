@@ -6,7 +6,7 @@ namespace HoLLy.DiscordBot
     internal static class Extensions
     {
         /// <summary>
-        /// A safer version of <code>IEnumerable&lt;String&gt;.Aggregate</code>, that's faster and doesn't crash as easily.
+        /// A safer version of <code>IEnumerable&lt;String&gt;.Aggregate</code> that's faster and doesn't crash as easily.
         /// </summary>
         /// <param name="src"></param>
         /// <returns></returns>

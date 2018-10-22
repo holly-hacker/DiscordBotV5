@@ -37,7 +37,7 @@ namespace HoLLy.DiscordBot
 
             var client = new DiscordSocketClient(); 
 
-            // Artificial scope to make sure the token doesn't leak by accident :)
+            // Artificial scope to make sure the token doesn't leak by accident during debugging :)
             {
                 string token = Environment.GetEnvironmentVariable(TokenEnvName);
                 if (string.IsNullOrWhiteSpace(token)) {
