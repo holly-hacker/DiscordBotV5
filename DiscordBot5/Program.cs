@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using HoLLy.DiscordBot.Commands;
+using HoLLy.DiscordBot.Commands.DependencyInjection;
 using HoLLy.DiscordBot.Permissions;
 
 namespace HoLLy.DiscordBot
@@ -16,8 +17,9 @@ namespace HoLLy.DiscordBot
 
         private static CommandHandler _cmd;
         private static PermissionManager _perm;
+        private static DependencyContainer _dep;
 
-        private static async Task Main(string[] args)
+        private static async Task Main()
         {
             Console.WriteLine("Hello World!\n");
 
@@ -27,15 +29,21 @@ namespace HoLLy.DiscordBot
                 return;
             }
 
-            Console.WriteLine("Reading permissions...");
+            _dep = new DependencyContainer();
             _perm = new PermissionManager();
+            _cmd = new CommandHandler(Prefix, _perm, _dep);
+
+            Console.WriteLine("Caching dependencies");
+            _dep.Cache(_perm);
+            _dep.Cache(_cmd);
+
+            Console.WriteLine("Reading permissions...");
             _perm.Read(PermissionFile);
 
             Console.WriteLine("Installing commands...");
-            _cmd = new CommandHandler(Prefix, _perm);
             _cmd.InstallCommands();
 
-            var client = new DiscordSocketClient(); 
+            var client = new DiscordSocketClient();
 
             // Artificial scope to make sure the token doesn't leak by accident during debugging :)
             {

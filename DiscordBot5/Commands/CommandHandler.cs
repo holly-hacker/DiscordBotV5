@@ -8,25 +8,30 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using HoLLy.DiscordBot.Commands.DependencyInjection;
 using HoLLy.DiscordBot.Permissions;
 
 namespace HoLLy.DiscordBot.Commands
 {
-    internal class CommandHandler
+    public class CommandHandler
     {
         private const string AssemblyPrefix = "HoLLy.DiscordBot.Commands";
 
+        public List<Command> Commands => _commands;
+
         private readonly string _prefix;
         private readonly PermissionManager _perm;
+        private readonly DependencyContainer _dep;
         private List<Command> _commands;
 
-        public CommandHandler(string prefix, PermissionManager perm)
+        internal CommandHandler(string prefix, PermissionManager perm, DependencyContainer dep)
         {
             _prefix = prefix;
             _perm = perm;
+            _dep = dep;
         }
 
-        public void InstallCommands()
+        internal void InstallCommands()
         {
             _commands = new List<Command>();
 
@@ -34,16 +39,16 @@ namespace HoLLy.DiscordBot.Commands
             _commands.Add(new HelpCommand(_commands));  // Command-ception
 
             // Look for commands in nearby DLL's
-            foreach (var command in FindCommands()) {
+            foreach (var command in FindCommandsFromAssemblies()) {
                 Console.WriteLine("Detected command " + command.Usage);
                 _commands.Add(command);
             }
         }
 
-        public async Task HandleMessage(SocketMessage msg)
+        internal async Task HandleMessage(SocketMessage msg)
         {
             if (msg.Source != MessageSource.User) return;
-            
+
             string content = msg.Content;
             string response;
 
@@ -68,6 +73,8 @@ namespace HoLLy.DiscordBot.Commands
 
         private async Task<string> HandleCommand(SocketMessage msg, string cmd)
         {
+            // TODO: proper async
+
             // Do some basic parsing
             int spaceIdx = cmd.IndexOf(' ');
             string verb, args;
@@ -93,8 +100,8 @@ namespace HoLLy.DiscordBot.Commands
                 try {
                     var command = matching.Single();
 
-                    return _perm.GetPermissions(msg) >= command.MinPermission 
-                        ? command.Invoke(args)?.ToString() 
+                    return _perm.GetPermissionLevel(msg) >= command.MinPermission
+                        ? command.Invoke(args)?.ToString()
                         : "You do not have the required permission level to use this command!";
                 } catch (Exception e) {
                     Console.WriteLine(e);
@@ -112,13 +119,13 @@ namespace HoLLy.DiscordBot.Commands
                     match.Groups["cmd"].Value.Trim());
         }
 
-        public static IEnumerable<Command> FindCommands()
+        private IEnumerable<Command> FindCommandsFromAssemblies()
         {
             return
-                from file   in Directory.GetFiles(Environment.CurrentDirectory, AssemblyPrefix + "*.dll") 
-                from method in Assembly.LoadFile(file).ExportedTypes.SelectMany(x => x.GetMethods()) 
-                from attr   in method.GetCustomAttributes<CommandAttribute>() 
-                select new MethodCommand(attr.Command, attr.Description, attr.MinPermission, method);
+                from file   in Directory.GetFiles(Environment.CurrentDirectory, AssemblyPrefix + "*.dll")
+                from method in Assembly.LoadFile(file).ExportedTypes.SelectMany(x => x.GetMethods())
+                from attr   in method.GetCustomAttributes<CommandAttribute>()
+                select new MethodCommand(attr, method, _dep);
         }
     }
 }

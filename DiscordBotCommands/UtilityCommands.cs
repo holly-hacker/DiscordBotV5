@@ -15,7 +15,7 @@ namespace HoLLy.DiscordBot.Commands
                 return $"Error during evaluation: `{e.Message}`";
             }
         }
-        
+
         [Command("rand", "Picks a random item from a list")]
         public static string Random(string words)
         {

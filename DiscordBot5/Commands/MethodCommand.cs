@@ -2,80 +2,81 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using HoLLy.DiscordBot.Commands.DependencyInjection;
 
 namespace HoLLy.DiscordBot.Commands
 {
     internal class MethodCommand : Command
     {
-        public override string Usage => Verb + _types?.Select(y => $" <{y.Name}>").SafeAggregate();
+        public override string Usage => Verb + _cmdParams?.Select(y => $" <{y.Name}>").SafeAggregate();
 
-        private readonly Type[] _types;
+        private readonly Type[] _cmdParams;
+        private readonly DependencyContainer _dep;
         private readonly bool _endsOnVarLength;
         private readonly MethodInfo _method;
+        private readonly int _paramCount;
 
-        public MethodCommand(string verb, string description, int? minPermission, MethodInfo method) : base(verb, description, minPermission ?? 0)
+        internal MethodCommand(CommandAttribute cmdAttr, MethodInfo method, DependencyContainer dep) : base(cmdAttr.Command, cmdAttr.Description, cmdAttr.MinPermission ?? 0)
         {
             _method = method;
+            _dep = dep;
 
             Debug.Assert(_method != null);
 
             if (!_method.IsStatic)
                 throw new ArgumentException($"Tried to create a {nameof(MethodCommand)} using a non-static method.", nameof(_method));
 
-            _types = _method.GetParameters().Select(x => x.ParameterType).ToArray();
-            _endsOnVarLength = _types.LastOrDefault() == typeof(string) || _types.LastOrDefault()?.IsArray == true;
+            _cmdParams = _method.GetParameters().Where(x => x.CustomAttributes.All(y => y.AttributeType != typeof(DIAttribute))).Select(x => x.ParameterType).ToArray();
+            _paramCount = _cmdParams.Length;
+            _endsOnVarLength = _paramCount > 0 && ParameterParser.IsVarLen(_cmdParams.Last());
 
-            if (_types.Count(x => x == typeof(string)) >= 2)
+            if (_cmdParams.Count(ParameterParser.IsVarLen) > 1)
                 throw new NotSupportedException("Found more than 2 strings in this command.");
         }
 
-        public override bool MatchesArguments(string arguments)
+        protected override bool MatchesArguments(string arguments)
         {
-            if (_types.Length == 0)
+            if (_paramCount == 0)
                 return string.IsNullOrWhiteSpace(arguments);
 
             int argCount = arguments.Split(' ').Length;
 
             return _endsOnVarLength
-                ? argCount >= _types.Length || _types.Length == 1
-                : argCount == _types.Length;
+                ? argCount >= _paramCount || _paramCount == 1
+                : argCount == _paramCount;
         }
 
         public override object Invoke(string arguments) => _method.Invoke(null, ParseParameters(arguments));
 
         private object[] ParseParameters(string args)
         {
-            if (_types.Length == 0)
-                return null;
+            var implParams = _method.GetParameters();
+            var retParams = new object[implParams.Length];
+            string[] split = (args ?? string.Empty).Split(' ');
+            int argIdx = 0;
+            bool cannotParseMore = false;
 
-            if (_types.Length == 1) {
-                if (!ParseParameter(_types[0], args, out object obj))
-                    throw new ArgumentException($"Failed to parse argument! (type={_types[0]}) :(");
-                return new[] { obj };
+            for (int i = 0; i < implParams.Length; i++) {
+                ParameterInfo ip = implParams[i];
+                Type ipType = ip.ParameterType;
+                if (ip.CustomAttributes.Any(x => x.AttributeType == typeof(DIAttribute))) {
+                    retParams[i] = _dep.Get(ipType);
+                    // TODO: error checking, eg. when not cached
+                } else {
+                    if (cannotParseMore)
+                        throw new Exception("Continued parsing after being told not to (multiple varlens?)");
+
+                    if (ParameterParser.IsVarLen(ipType)) { // this check relies on a check on multiple varlens being done before (see ctor)
+                        if (!ParseParameter(ipType, string.Join(" ", split.Skip(argIdx++)), out retParams[i]))
+                            throw new ArgumentException($"Failed to parse varlen argument {argIdx} :(");
+                        cannotParseMore = true;
+                    }
+                    else if (!ParseParameter(ipType, split[argIdx++], out retParams[i]))
+                        throw new ArgumentException($"Failed to parse argument {argIdx} :(");
+                }
             }
 
-            string[] split = args.Split(' ');
-            if (!_endsOnVarLength && split.Length != _types.Length)
-                throw new Exception($"Argument count mismatch! (Expected {_types.Length}, got {split.Length})");
-
-            int paramCount = _types.Length;
-            var parameters = new object[paramCount];
-            if (_endsOnVarLength)
-                paramCount--;   // parse 1 parameter less, keep the rest for the varlen param
-
-            // parsing only the normal parameters
-            for (int i = 0; i < paramCount; i++)
-                if (!ParseParameter(_types[i], split[i], out parameters[i]))
-                    throw new ArgumentException($"Failed to parse argument {i + 1} :(");
-
-            // parsing varlen param, if needed
-            if (_endsOnVarLength) {
-                string finalArg = string.Join(" ", split.Skip(paramCount));
-                if (!ParseParameter(_types[paramCount], finalArg, out parameters[paramCount]))
-                    throw new ArgumentException($"Failed to parse variable length argument! (type={_types[paramCount]}) :(");
-            }
-
-            return parameters;
+            return retParams;
         }
 
         private static bool ParseParameter(Type t, string str, out object outParam)

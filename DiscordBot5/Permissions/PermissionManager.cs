@@ -10,13 +10,13 @@ using HoLLy.DiscordBot.Permissions.Conditions.Users;
 
 namespace HoLLy.DiscordBot.Permissions
 {
-    internal class PermissionManager
+    public class PermissionManager
     {
-        public Dictionary<IServerCondition, Dictionary<IUserCondition, int>> Conditions;
+        private Dictionary<IServerCondition, Dictionary<IUserCondition, int>> _conditions;
 
-        public void Read(string file)
+        internal void Read(string file)
         {
-            Conditions = new Dictionary<IServerCondition, Dictionary<IUserCondition, int>>();
+            _conditions = new Dictionary<IServerCondition, Dictionary<IUserCondition, int>>();
 
             var tokenizer = new BasicTokenizer();
             BasicToken[] array = tokenizer.Tokenize(File.ReadAllText(file)).ToArray();
@@ -45,12 +45,12 @@ namespace HoLLy.DiscordBot.Permissions
                         throw new Exception("Unexpected server condition: " + sToken.TextValue);
                 }
 
-                // We have the server condition, create a list of userconditions for it
-                Conditions[sc] = new Dictionary<IUserCondition, int>();
+                // We have the server condition, create a list of user conditions for it
+                _conditions[sc] = new Dictionary<IUserCondition, int>();
 
                 if (array[++i].TextValue != "{")
                     throw new Exception("Expected '{' instead of " + array[i]);
-                
+
                 // Now read the user permission lines
                 BasicToken cToken;
                 while (!((cToken = array[++i]) is SymbolToken)) {
@@ -59,7 +59,7 @@ namespace HoLLy.DiscordBot.Permissions
                     IUserCondition uc;
                     switch (cToken.TextValue.ToUpperInvariant()) {
                         case "ROLE": {
-                            // Expected parameter is '[Blablabla]'
+                            // Expected parameter is '[BlaBlaBla]'
                             var b1 = array[++i];
                             var role = array[++i];
                             var b2 = array[++i];
@@ -115,17 +115,17 @@ namespace HoLLy.DiscordBot.Permissions
                         throw new Exception($"Unexpected token type {x.GetType()} (value={x.TextValue}), expected number or '-'");
 
                     // We have the user condition, add it to the list
-                    Conditions[sc][uc] = perm;
+                    _conditions[sc][uc] = perm;
                 }
 
                 // All permissions are read now!
             }
         }
 
-        public int GetPermissions(SocketMessage message)
+        public int GetPermissionLevel(SocketMessage message)
         {
             // Get all matching servers conditions
-            var serverNonDefault = Conditions
+            var serverNonDefault = _conditions
                 .Where(s => s.Key.Match(message.Channel))
                 .Where(s => !(s.Key is DefaultServerCondition))
                 .SelectMany(s => s.Value)
@@ -143,14 +143,14 @@ namespace HoLLy.DiscordBot.Permissions
                 // Try non-default matches
                 if (userNonDefault.Any())
                     return userNonDefault.Max(x => x.Value);
-                
+
                 // Fall back to default match
                 if (user.Any())
                     return user.Max(x => x.Value);
             }
 
-            if (Conditions.Any(s => s.Key is DefaultServerCondition)) {
-                var defServer = Conditions.Single(s => s.Key is DefaultServerCondition).Value;
+            if (_conditions.Any(s => s.Key is DefaultServerCondition)) {
+                var defServer = _conditions.Single(s => s.Key is DefaultServerCondition).Value;
 
                 // Get all matching conditions
                 var user = defServer
@@ -163,7 +163,7 @@ namespace HoLLy.DiscordBot.Permissions
                 // Try non-default matches
                 if (userNonDefault.Any())
                     return userNonDefault.Max(x => x.Value);
-                
+
                 // Fall back to default match
                 if (user.Any())
                     return user.Max(x => x.Value);

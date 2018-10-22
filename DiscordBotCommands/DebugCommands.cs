@@ -1,6 +1,7 @@
-#if DEBUG
-using System;
+﻿#if DEBUG
 using System.Linq;
+using HoLLy.DiscordBot.Commands.DependencyInjection;
+using HoLLy.DiscordBot.Permissions;
 
 namespace HoLLy.DiscordBot.Commands
 {
@@ -23,6 +24,12 @@ namespace HoLLy.DiscordBot.Commands
 
         [Command(130, "permtest2", "Requires a permission level of at least 130")]
         public static string PermissionTest2() => "Permission test success!";
+
+        [Command("ditest")]
+        public static string DITest([DI] PermissionManager perms, [DI] CommandHandler cmd)
+        {
+            return $"{cmd.Commands.Count} commands loaded";
+        }
     }
 }
 #endif

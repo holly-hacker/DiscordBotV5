@@ -14,7 +14,7 @@ namespace HoLLy.DiscordBot.Commands {
 
         public override string Usage => Verb;
 
-        public override bool MatchesArguments(string arguments) => true;
+        protected override bool MatchesArguments(string arguments) => true;
 
         public override object Invoke(string arguments)
         {
