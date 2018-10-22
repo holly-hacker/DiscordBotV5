@@ -46,7 +46,6 @@ namespace HoLLy.DiscordBot.Commands
                 else
                     return argCount >= Types.Length;
             }
-
         }
 
         public override object Invoke(string arguments) => _method.Invoke(null, ParseParameters(arguments));
@@ -73,7 +72,7 @@ namespace HoLLy.DiscordBot.Commands
 
             // Get the length of the normal parameters (meaning not variable lengths).
             // If there is a variable length at the end, then we stop the splitting one parameter early and take the rest as the parameter.
-            int paramCount = splittedArgs.Length;
+            int paramCount = Types.Length;
             var parameters = new object[paramCount];
             if (EndsOnVarLength)
                 paramCount--;   // Need to keep in mind that this is reduced by 1 if we end on a variable length!
@@ -85,8 +84,6 @@ namespace HoLLy.DiscordBot.Commands
 
             // If the last parameter is of variable length, get that now
             if (EndsOnVarLength) {
-                Debug.Assert(paramCount == splittedArgs.Length - 1);
-
                 // Take the last (joined left args) and parse it
                 var finalArg = string.Join(" ", splittedArgs.Skip(paramCount));
                 if (!ParseParameter(Types[paramCount], finalArg, out parameters[paramCount]))
