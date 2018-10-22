@@ -18,7 +18,7 @@ namespace HoLLy.DiscordBot.Commands
 
         private readonly string _prefix;
         private readonly PermissionManager _perm;
-        private List<Command> _commands;
+        private List<CommandBase> _commands;
 
         public CommandHandler(string prefix, PermissionManager perm)
         {
@@ -28,7 +28,7 @@ namespace HoLLy.DiscordBot.Commands
 
         public void InstallCommands()
         {
-            _commands = new List<Command>();
+            _commands = new List<CommandBase>();
 
             // Install the default help command
             _commands.Add(new HelpCommand(_commands));  // Command-ception
@@ -112,13 +112,13 @@ namespace HoLLy.DiscordBot.Commands
                     match.Groups["cmd"].Value.Trim());
         }
 
-        public static IEnumerable<Command> FindCommands()
+        public static IEnumerable<CommandBase> FindCommands()
         {
             return
                 from file   in Directory.GetFiles(Environment.CurrentDirectory, AssemblyPrefix + "*.dll") 
                 from method in Assembly.LoadFile(file).ExportedTypes.SelectMany(x => x.GetMethods()) 
                 from attr   in method.GetCustomAttributes<CommandAttribute>() 
-                select new Command(attr.Command, attr.Description, attr.MinPermission, method);
+                select new MethodCommand(attr.Command, attr.Description, attr.MinPermission, method);
         }
     }
 }

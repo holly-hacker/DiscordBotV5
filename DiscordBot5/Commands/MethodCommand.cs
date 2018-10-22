@@ -1,43 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace HoLLy.DiscordBot.Commands
 {
-    internal class Command
+    internal class MethodCommand : CommandBase
     {
-        public readonly string Verb;
-        public readonly string Description;
-        public readonly int? MinPermission;
-        public Type[] Types => _method?.GetParameters().Select(x => x.ParameterType).ToArray();
-        public string Usage => Verb + Types?.Select(y => $" <{y.Name}>").SafeAggregate();
-        private MethodInfo _method;
-        private bool EndsOnVarLength => Types?.Last() == typeof(string) || Types?.Last().IsArray == true;
+        public override string Usage => Verb + Types?.Select(y => $" <{y.Name}>").SafeAggregate();
 
-        public Command(string verb, string description, int? minPermission, MethodInfo method)
+        private Type[] Types => _method.GetParameters().Select(x => x.ParameterType).ToArray();
+        private bool EndsOnVarLength => Types.Last() == typeof(string) || Types?.Last().IsArray == true;
+
+        private readonly MethodInfo _method;
+
+        public MethodCommand(string verb, string description, int? minPermission, MethodInfo method) : base(verb, description, minPermission ?? 0)
         {
-            Verb = verb.ToLowerInvariant();
-            Description = description;
-            MinPermission = minPermission;
             _method = method;
 
-            if (_method != null) {
-                Debug.Assert(_method.IsStatic);
+            Debug.Assert(_method != null);
+            
+            if (!_method.IsStatic)
+                throw new ArgumentException($"Tried to create a {nameof(MethodCommand)} using a non-static method.", nameof(_method));
 
-                // Do some checks against strings. I don't like strings :(
-                if (Types.Count(x => x == typeof(string)) >= 2)
-                    throw new NotSupportedException("Found more than 2 strings in this command.");
-            }
+            // Do some checks against strings. I don't like strings :(
+            if (Types.Count(x => x == typeof(string)) >= 2)
+                throw new NotSupportedException("Found more than 2 strings in this command.");
         }
-
-        public bool Matches(string verb, string arguments)
+        
+        public override bool MatchesArguments(string arguments)
         {
-            // Easiest check, make sure the verbs match
-            if (verb.ToLowerInvariant() != Verb) return false;
-
             // If we don't have a method (and thus no types), make sure the arguments aren't specified
             if (Types == null || Types.Length == 0)
                 return string.IsNullOrWhiteSpace(arguments);
@@ -57,7 +49,7 @@ namespace HoLLy.DiscordBot.Commands
 
         }
 
-        public virtual object Invoke(string arguments) => _method.Invoke(null, ParseParameters(arguments));
+        public override object Invoke(string arguments) => _method.Invoke(null, ParseParameters(arguments));
 
         private object[] ParseParameters(string args)
         {
@@ -80,7 +72,7 @@ namespace HoLLy.DiscordBot.Commands
                 throw new Exception($"Argument count mismatch! (Expected {Types.Length}, got {splittedArgs.Length})");
 
             // Get the length of the normal parameters (meaning not variable lengths).
-            // If there is a varable length at the end, then we stop the splitting one parameter early and take the rest as the parameter.
+            // If there is a variable length at the end, then we stop the splitting one parameter early and take the rest as the parameter.
             int paramCount = splittedArgs.Length;
             var parameters = new object[paramCount];
             if (EndsOnVarLength)
@@ -143,35 +135,6 @@ namespace HoLLy.DiscordBot.Commands
             }
 
             return ret;
-        }
-    }
-
-    internal class HelpCommand : Command
-    {
-        private readonly IReadOnlyList<Command> _commands;
-
-        public HelpCommand(IReadOnlyList<Command> commands) : base("help", "Displays some help", 0, null)
-        {
-            _commands = commands;
-        }
-
-        public override object Invoke(string arguments)
-        {
-            // Ignoring arguments for now
-            // TODO: show help-specific info if argument is specified (also make sure to update Match when implementing that)
-
-            // Get a list of commands (with params)
-            List<string> usages = _commands.Select(x => x.Usage + ":").ToList();
-            int longestUsage = usages.Max(x => x.Length);
-
-            // Build the help list
-            var sb = new StringBuilder();
-            sb.AppendLine("```http");
-            for (int i = 0; i < usages.Count; i++)
-                sb.AppendLine($"{usages[i].PadRight(longestUsage)} {_commands[i].Description ?? "<no description>"}");
-            sb.Append("```");
-
-            return sb.ToString();
         }
     }
 }
