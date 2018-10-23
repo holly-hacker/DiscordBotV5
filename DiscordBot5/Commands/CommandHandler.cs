@@ -101,7 +101,7 @@ namespace HoLLy.DiscordBot.Commands
                     var command = matching.Single();
 
                     return _perm.GetPermissionLevel(msg) >= command.MinPermission
-                        ? command.Invoke(args)?.ToString()
+                        ? command.Handle(args, msg)?.ToString()
                         : "You do not have the required permission level to use this command!";
                 } catch (Exception e) {
                     Console.WriteLine(e);

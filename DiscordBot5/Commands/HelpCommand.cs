@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Discord.WebSocket;
 
 namespace HoLLy.DiscordBot.Commands {
     internal class HelpCommand : Command
@@ -16,7 +17,7 @@ namespace HoLLy.DiscordBot.Commands {
 
         protected override bool MatchesArguments(string arguments) => true;
 
-        public override object Invoke(string arguments)
+        public override object Handle(string arguments, SocketMessage msg)
         {
             // Ignoring arguments for now
             // TODO: show help-specific info if argument is specified (also make sure to update Match when implementing that)

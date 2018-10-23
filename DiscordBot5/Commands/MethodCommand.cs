@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using Discord.WebSocket;
 using HoLLy.DiscordBot.Commands.DependencyInjection;
 
 namespace HoLLy.DiscordBot.Commands
@@ -46,9 +47,9 @@ namespace HoLLy.DiscordBot.Commands
                 : argCount == _paramCount;
         }
 
-        public override object Invoke(string arguments) => _method.Invoke(null, ParseParameters(arguments));
+        public override object Handle(string arguments, SocketMessage msg) => _method.Invoke(null, ConvertParameters(arguments, msg));
 
-        private object[] ParseParameters(string args)
+        private object[] ConvertParameters(string args, SocketMessage msg)
         {
             var implParams = _method.GetParameters();
             var retParams = new object[implParams.Length];
@@ -60,8 +61,7 @@ namespace HoLLy.DiscordBot.Commands
                 ParameterInfo ip = implParams[i];
                 Type ipType = ip.ParameterType;
                 if (ip.CustomAttributes.Any(x => x.AttributeType == typeof(DIAttribute))) {
-                    retParams[i] = _dep.Get(ipType);
-                    // TODO: error checking, eg. when not cached
+                    retParams[i] = ipType.IsInstanceOfType(msg) ? msg : _dep.Get(ipType);
                 } else {
                     if (cannotParseMore)
                         throw new Exception("Continued parsing after being told not to (multiple varlens?)");

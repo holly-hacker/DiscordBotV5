@@ -29,6 +29,7 @@ namespace HoLLy.DiscordBot
                 return;
             }
 
+            var client = new DiscordSocketClient();
             _dep = new DependencyContainer();
             _perm = new PermissionManager();
             _cmd = new CommandHandler(Prefix, _perm, _dep);
@@ -36,14 +37,13 @@ namespace HoLLy.DiscordBot
             Console.WriteLine("Caching dependencies");
             _dep.Cache(_perm);
             _dep.Cache(_cmd);
+            _dep.Cache(client);
 
             Console.WriteLine("Reading permissions...");
             _perm.Read(PermissionFile);
 
             Console.WriteLine("Installing commands...");
             _cmd.InstallCommands();
-
-            var client = new DiscordSocketClient();
 
             // Artificial scope to make sure the token doesn't leak by accident during debugging :)
             {

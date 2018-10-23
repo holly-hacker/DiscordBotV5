@@ -1,4 +1,5 @@
 ﻿using System;
+using Discord.WebSocket;
 
 namespace HoLLy.DiscordBot.Commands
 {
@@ -20,6 +21,6 @@ namespace HoLLy.DiscordBot.Commands
 
         protected abstract bool MatchesArguments(string arguments);
 
-        public abstract object Invoke(string arguments);
+        public abstract object Handle(string arguments, SocketMessage msg);
     }
 }

@@ -1,5 +1,6 @@
-﻿#if DEBUG
+#if DEBUG
 using System.Linq;
+using Discord.WebSocket;
 using HoLLy.DiscordBot.Commands.DependencyInjection;
 using HoLLy.DiscordBot.Permissions;
 
@@ -26,9 +27,23 @@ namespace HoLLy.DiscordBot.Commands
         public static string PermissionTest2() => "Permission test success!";
 
         [Command("ditest")]
-        public static string DITest([DI] PermissionManager perms, [DI] CommandHandler cmd)
+        // parameters are in weird order on purpose
+        public static string DITest([DI] SocketMessage msg, string idk, [DI] CommandHandler cmd) => $"{cmd.Commands.Count} commands loaded. \n" +
+                                                                                                    $"Message type is `{msg.GetType()}`. \n" +
+                                                                                                    $"Passed parameter: `{idk}`";
+
+        [Command("permtest", "Shows callers permission level in this context")]
+        public static string PermissionTest([DI] SocketMessage msg, [DI] PermissionManager perms) => $"Your level is {perms.GetPermissionLevel(msg)}";
+
+        [Command("echo", "Returns the entire source message")]
+        public static string Echo([DI] SocketUserMessage msg) => msg.Resolve();
+
+        [Command("who", "Returns self userinfo")]
+        public static string SelfInfo([DI] DiscordSocketClient cl)
         {
-            return $"{cmd.Commands.Count} commands loaded";
+            return $"Username: {cl.CurrentUser.Username}#{cl.CurrentUser.DiscriminatorValue}\n" +
+                   $"User ID: {cl.CurrentUser.Id}\n" +
+                   $"Avatar ID: {cl.CurrentUser.AvatarId}";
         }
     }
 }
