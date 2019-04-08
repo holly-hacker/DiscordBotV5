@@ -13,7 +13,12 @@ namespace HoLLy.DiscordBot
     {
         private const string TokenEnvName = "DISCORD_BOT_SECRET";
         private const string PermissionFile = "permissions.txt";
+
+        #if DEBUG
+        private const string Prefix = "ht:";
+        #else
         private const string Prefix = "h:";
+        #endif
 
         private static CommandHandler _cmd;
         private static PermissionManager _perm;
