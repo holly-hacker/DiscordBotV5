@@ -26,11 +26,8 @@ namespace HoLLy.DiscordBot
 
         private static async Task Main()
         {
-            Console.WriteLine("Hello World!\n");
-
             if (!File.Exists(PermissionFile)) {
                 Console.WriteLine($"Please create a permissions file named {PermissionFile}!");
-                Console.Read();
                 return;
             }
 
@@ -55,7 +52,6 @@ namespace HoLLy.DiscordBot
                 string token = Environment.GetEnvironmentVariable(TokenEnvName);
                 if (string.IsNullOrWhiteSpace(token)) {
                     Console.WriteLine($"No token in {TokenEnvName}.");
-                    Console.ReadLine();
                     return;
                 }
                 Console.WriteLine("Logging in...");
