@@ -122,7 +122,7 @@ namespace HoLLy.DiscordBot.Commands
         private IEnumerable<Command> FindCommandsFromAssemblies()
         {
             return
-                from file   in Directory.GetFiles(Environment.CurrentDirectory, AssemblyPrefix + "*.dll")
+                from file   in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), AssemblyPrefix + "*.dll")
                 from method in Assembly.LoadFile(file).ExportedTypes.SelectMany(x => x.GetMethods())
                 from attr   in method.GetCustomAttributes<CommandAttribute>()
                 select new MethodCommand(attr, method, _dep);
