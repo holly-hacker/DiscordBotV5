@@ -105,7 +105,7 @@ namespace HoLLy.DiscordBot.Commands
                         : "You do not have the required permission level to use this command!";
                 } catch (Exception e) {
                     Console.WriteLine(e);
-                    return $"An exception occured while executing this command: `{e.Message}`";
+                    return $"An exception occured while executing this command: `{e.InnerException?.Message ?? e.Message}`";
                 }
             }
         }
