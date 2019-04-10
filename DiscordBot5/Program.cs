@@ -9,7 +9,7 @@ using HoLLy.DiscordBot.Permissions;
 
 namespace HoLLy.DiscordBot
 {
-    internal static class Program
+    public static class Program
     {
         private const string TokenEnvName = "DISCORD_BOT_SECRET";
         private const string PermissionFile = "permissions.txt";
@@ -24,7 +24,7 @@ namespace HoLLy.DiscordBot
         private static PermissionManager _perm;
         private static DependencyContainer _dep;
 
-        private static async Task Main()
+        public static async Task Main()
         {
             if (!File.Exists(PermissionFile)) {
                 Console.WriteLine($"Please create a permissions file named {PermissionFile}!");
