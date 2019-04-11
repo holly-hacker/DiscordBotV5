@@ -124,50 +124,38 @@ namespace HoLLy.DiscordBot.Permissions
 
         public int GetPermissionLevel(SocketMessage message)
         {
-            // Get all matching servers conditions
-            var serverNonDefault = _conditions
+            // Get all matching servers conditions.
+            var serversConditions = _conditions
                 .Where(s => s.Key.Match(message.Channel))
                 .Where(s => !(s.Key is DefaultServerCondition))
                 .SelectMany(s => s.Value)
                 .ToArray();
+            var defaultConditions = _conditions
+                .Where(s => s.Key is DefaultServerCondition)
+                .SelectMany(s => s.Value)
+                .ToArray();
 
-            if (serverNonDefault.Any()) {
-                // Get all matching conditions
-                var user = serverNonDefault
-                    .Where(u => u.Key.Match(message.Author, message.Channel))
-                    .ToArray();
-                var userNonDefault = user
-                    .Where(u => !(u.Key is DefaultUserCondition))
-                    .ToArray();
+            bool isMatch<T>(KeyValuePair<IUserCondition, int> x) where T : IUserCondition
+                => x.Key is T t && t.Match(message.Author, message.Channel);
 
-                // Try non-default matches
-                if (userNonDefault.Any())
-                    return userNonDefault.Max(x => x.Value);
+            int getPermission<T>(KeyValuePair<IUserCondition, int>[] conditions) where T : IUserCondition
+                => conditions.Where(isMatch<T>).Max(x => x.Value);
 
-                // Fall back to default match
-                if (user.Any())
-                    return user.Max(x => x.Value);
-            }
+            // Check for userid matches
+            if (serversConditions.Any(isMatch<UserIdCondition>)) return getPermission<UserIdCondition>(serversConditions);
+            if (defaultConditions.Any(isMatch<UserIdCondition>)) return getPermission<UserIdCondition>(defaultConditions);
 
-            if (_conditions.Any(s => s.Key is DefaultServerCondition)) {
-                var defServer = _conditions.Single(s => s.Key is DefaultServerCondition).Value;
+            // Check for server owner matches
+            if (serversConditions.Any(isMatch<UserServerOwnerCondition>)) return getPermission<UserServerOwnerCondition>(serversConditions);
+            if (defaultConditions.Any(isMatch<UserServerOwnerCondition>)) return getPermission<UserServerOwnerCondition>(defaultConditions);
 
-                // Get all matching conditions
-                var user = defServer
-                    .Where(u => u.Key.Match(message.Author, message.Channel))
-                    .ToArray();
-                var userNonDefault = user
-                    .Where(u => !(u.Key is DefaultUserCondition))
-                    .ToArray();
+            // Check for role matches
+            if (serversConditions.Any(isMatch<UserRoleCondition>)) return getPermission<UserRoleCondition>(serversConditions);
+            if (defaultConditions.Any(isMatch<UserRoleCondition>)) return getPermission<UserRoleCondition>(defaultConditions);
 
-                // Try non-default matches
-                if (userNonDefault.Any())
-                    return userNonDefault.Max(x => x.Value);
-
-                // Fall back to default match
-                if (user.Any())
-                    return user.Max(x => x.Value);
-            }
+            // Check for default matches
+            if (serversConditions.Any(isMatch<DefaultUserCondition>)) return getPermission<DefaultUserCondition>(serversConditions);
+            if (defaultConditions.Any(isMatch<DefaultUserCondition>)) return getPermission<DefaultUserCondition>(defaultConditions);
 
             // Could return int32.min here
             throw new Exception("No permission for this user!");
